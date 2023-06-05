@@ -1,0 +1,51 @@
+module Test where
+
+import Daml.Script
+import Main
+
+setupParties : Script (Party, Party)
+setupParties = do
+    customer <- allocateParty "Customer"
+    banker <- allocateParty "Bank"
+    return (customer, banker)
+
+-- Happy path tests
+
+testApplyForLoan    : Script (ContractId Loan) 
+testApplyForLoan = script do
+    (customer, banker) <- setupParties
+    applicationCid <- submit customer $ createCmd LoanApplication 
+        with
+            customer = customer
+            banker = banker
+            amount = 1000.0
+    submit banker $ exerciseCmd applicationCid ApplyForLoan with approver = banker
+
+testRejectLoan : Script ()
+testRejectLoan = do
+    (customer, banker) <- setupParties
+    applicationCid <- submit customer $ createCmd LoanApplication 
+        with
+            customer = customer
+            banker = banker
+            amount = 1000.0
+    submit banker $ exerciseCmd applicationCid RejectLoan with approver = banker
+
+-- testModifyLoan : Script ()
+-- testModifyLoan = do
+--     (customer, banker) <- setupParties
+--     loanCid <- testApplyForLoan
+--     loan <- submit banker $ fetch loanCid
+--     _ <- submit banker $ exerciseCmd loanCid (ModifyLoan with newAmount = 1200.0)
+--     return ()
+    -- applicationCid <- submit customer $ createCmd LoanApplication 
+    --     with
+    --         customer = customer
+    --         banker = banker
+    --         amount = 1000.0
+    -- submit banker $ exerciseCmd applicationCid ModifyLoan 
+    --     with LoanDetails 
+    --         with
+    --             banker = banker
+
+
