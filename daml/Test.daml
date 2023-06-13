@@ -19,7 +19,7 @@ testApplyForLoan = script do
             customer = customer
             banker = banker
             amount = 1000.0
-    submit banker $ exerciseCmd applicationCid ApplyForLoan with approver = banker
+    submit banker $ exerciseCmd applicationCid ApproveLoan with approver = banker
 
 testRejectLoan : Script ()
 testRejectLoan = do
@@ -31,21 +31,66 @@ testRejectLoan = do
             amount = 1000.0
     submit banker $ exerciseCmd applicationCid RejectLoan with approver = banker
 
--- testModifyLoan : Script ()
--- testModifyLoan = do
---     (customer, banker) <- setupParties
---     loanCid <- testApplyForLoan
---     loan <- submit banker $ fetch loanCid
---     _ <- submit banker $ exerciseCmd loanCid (ModifyLoan with newAmount = 1200.0)
---     return ()
-    -- applicationCid <- submit customer $ createCmd LoanApplication 
-    --     with
-    --         customer = customer
-    --         banker = banker
-    --         amount = 1000.0
-    -- submit banker $ exerciseCmd applicationCid ModifyLoan 
-    --     with LoanDetails 
-    --         with
-    --             banker = banker
+
+testPayOffLoan: Script ()
+testPayOffLoan = script do 
+    (customer, banker) <- setupParties
+    applicationCid <- submit customer $ createCmd LoanApplication 
+        with
+            customer = customer
+            banker = banker
+            amount = 1000.0
+    loanCid <- submit banker $ exerciseCmd applicationCid ApproveLoan with approver = banker
+
+    submit customer $ exerciseCmd loanCid PayLoan
+    return ()
+
+
+testModifyLoan : Script ()
+testModifyLoan = do
+    (customer, banker) <- setupParties
+    applicationCid <- submit customer $ createCmd LoanApplication 
+        with
+            customer = customer
+            banker = banker
+            amount = 1000.0
+    loanCid <- submit banker $ exerciseCmd applicationCid ApproveLoan with approver = banker
+    _ <- submit banker $ exerciseCmd loanCid ModifyLoan with newAmount = 1200.0
+    return ()
+
+
+-- Sad path tests
+testApplyForLoanWithWrongAmount : Script ()
+testApplyForLoanWithWrongAmount = do
+    (customer, banker) <- setupParties
+    applicationCid <- submitMustFail customer $ createCmd LoanApplication 
+        with
+            customer = customer
+            banker = banker
+            amount = 0.0
+    return ()
+
+testApplyForLoanWithWrongBanker : Script ()
+testApplyForLoanWithWrongBanker = do
+    (customer, banker) <- setupParties
+    applicationCid <- submit customer $ createCmd LoanApplication 
+        with
+            customer = customer
+            banker = banker
+            amount = 1000.0
+    loanCid <- submitMustFail banker $ exerciseCmd applicationCid ApproveLoan with approver = customer
+    return ()
+
+testModifyLoanWithWrongAmount : Script ()
+testModifyLoanWithWrongAmount = do
+    (customer, banker) <- setupParties
+    applicationCid <- submit customer $ createCmd LoanApplication 
+        with
+            customer = customer
+            banker = banker
+            amount = 100.0
+    loanCid <- submit banker $ exerciseCmd applicationCid ApproveLoan with approver = banker
+    _ <- submitMustFail customer $ exerciseCmd loanCid ModifyLoan with newAmount = 0.0
+    return ()
 
 

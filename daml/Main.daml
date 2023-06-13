@@ -22,8 +22,6 @@ initializeParties = do
     return ()
 
 
-
-
 data LoanDetails = LoanDetails
     with 
         banker: Party
@@ -47,7 +45,7 @@ template LoanApplication
 
         ensure amount > 0.0
 
-        choice ApplyForLoan: ContractId Loan
+        choice ApproveLoan: ContractId Loan
             with 
                 approver: Party
             controller approver
@@ -66,6 +64,7 @@ template LoanApplication
             do 
                 assertMsg "Not authorised as bank" (approver == banker)
                 return ()
+        
 
 
 template Loan 
@@ -73,17 +72,12 @@ template Loan
         details: LoanDetails
     where 
         signatory details.banker, details.customer
-        key(details.banker, details.customer): (Party, Party)
-        maintainer key._1
 
         ensure details.amount > 0.0
 
         choice PayLoan: ()
-            with 
-                payer: Party
-            controller payer
+            controller details.customer
             do 
-                assertMsg "Not authorised as customer" (payer == details.customer)
                 return ()
         
         nonconsuming choice ModifyLoan: ContractId Loan
